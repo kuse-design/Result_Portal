@@ -1,52 +1,77 @@
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from account.models import Student
+from core.constants import LEVEL_CHOICES, SEMESTER_CHOICES
 from core.models import Department
 
 
 # Create your models here.
 
-class AcademicSession(models.Model):
-    name = models.CharField(max_length=200)
-    year = models.CharField(max_length=4)
-    semester = models.IntegerField()
+class AcademicsSession(models.Model):
+    name = models.CharField(max_length=100,help_text= "e.g, 2024/2025")
+    year = models.PositiveIntegerField(validators=[MaxValueValidator(2100),MinValueValidator(2000)])
+    semester = models.IntegerField(choices= SEMESTER_CHOICES, default="first")
     is_current = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.name
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
     class Meta:
-        ordering = ['-year', 'semester']
+       db_table = 'academics_session'
+       unique_together = ('semester','year')
+       ordering = ['-year', "semester"]
 
+
+
+    def __str__(self):
+        return f"{self.name}- {self.get_semester_display()}"
 
 
 class Course(models.Model):
-    class CourseLevel(models.TextChoices):
-        LEVEL_100 = 'level  100'
-        LEVEL_200 = 'level  200'
-        LEVEL_300 = 'level  300'
-        LEVEL_400 = 'level  400'
-        LEVEL_500 = 'level  500'
+    department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name='courses')
+    code = models.CharField(max_length=20, unique=True)
+    title = models.CharField(max_length=200)
+    credit_units = models.PositiveSmallIntegerField(validators=[MinValueValidator(1),MaxValueValidator(6)])
+    level = models.CharField(max_length=3,choices=LEVEL_CHOICES, default="100")
+    semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES,default="first")
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    department = models.ManyToManyField(Department)
-    code = models.CharField(max_length=10, unique=True, blank=False, null=False)
-    title = models.CharField(max_length=200, blank=False, null=False, unique=True)
-    level = models.IntegerField(max_length=10, choices=CourseLevel, default=CourseLevel.LEVEL_100)
-    semester = models.IntegerField()
+    class Meta:
+        db_table = 'academics_course'
+        ordering = ["code"]
 
 
     def __str__(self):
-        return self.title
+        return f"{self.code}: {self.title},({self.credit_units},units)"
 
 class CourseRegistration(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    register_at = models.DateTimeField(auto_now_add=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE,related_name="registrations")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE,related_name="registrations")
+    session = models.ForeignKey(AcademicsSession,on_delete=models.CASCADE,related_name="registrations")
+    registered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'academics_course_registration'
+        unique_together = [('student',"course","session")]
+        ordering = ['session', 'course']
 
     def __str__(self):
-        return self.course.title
+        return f"{self.student} - {self.course} ({self.session})"
 
+    def clean(self):
+        if self.course_id and  self.session_id:
+            if self.course.semester != self.session.semester:
+                raise ValidationError(
+                    f"Course '{self.course}' belong to the"
+                    f"{self.course.get_semester_display()} session"
+                    f"is the {self.session.get_semester_display()}"
+                )
 
-
-
+class CourseViewSet(ModelViewSet):
+    queryset = Course.object

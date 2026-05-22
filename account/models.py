@@ -5,6 +5,21 @@ from core.models import Department
 # Create your models here.
 
 class Student(models.Model):
+    STUDENT_STATUS_CHOICES = [
+        ( "active", "Active"),
+        ( "suspended", "Suspended"),
+        ("graduated", "Graduated"),
+        ("withdrawn", "Withdrawn"),
+
+    ]
+
+    DESIGNATION_CHOICES = [
+        ("lecturer i", "Lecturer I"),
+        ("lecturer ii", "Lecturer II"),
+        ("sr_lecturer", "Senior Lecturer"),
+        ("professor", "Professor"),
+        ("hod",)
+    ]
     class Level(models.TextChoices):
         LEVEL100 = "Level 100"
         LEVEL200 = "Level 200"
