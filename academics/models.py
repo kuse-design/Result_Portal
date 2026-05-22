@@ -73,5 +73,4 @@ class CourseRegistration(models.Model):
                     f"is the {self.session.get_semester_display()}"
                 )
 
-class CourseViewSet(ModelViewSet):
-    queryset = Course.object
+
