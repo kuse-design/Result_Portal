@@ -74,3 +74,4 @@ class CourseRegistration(models.Model):
                 )
 
 
+# class COurseViewSet(ModelViewSet)
