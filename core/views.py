@@ -1,103 +1,72 @@
-from django.shortcuts import render
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from loguru import logger
+# from django.shortcuts import get_object_or_404
+# from rest_framework import status
+# from rest_framework.decorators import api_view
+# from rest_framework.serializers import ValidationError
+# from rest_framework.response import Response
+# from loguru import logger
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Department
 from .serializers import DepartmentSerializer
 
 
-
-
-class DepartmentViewSet(ModelViewSet):
-    queryset = Department.objects.all()
-    serializer_class = DepartmentSerializer
-
-
-
-# Create your views here.
-
 # @api_view(['POST'])
 # def create_department(request):
 #     try:
 #         serializer = DepartmentSerializer(data=request.data)
 #         serializer.is_valid(raise_exception=True)
-#         name = serializer.validated_data["name"]
-#         code = serializer.validated_data["code"]
-#         logger.info(f"data validated for department {name} ")
+#         name = serializer.validated_data['name']
+#         department_code = serializer.validated_data['department_code']
+#         logger.info(f"data validated for department: {name}")
 #
-#         if Department.objects.filter(code = serializer.validated_data["code"]).exists():
-#             logger.error(f"Department with code {code} already exists")
-#             return Response({"message":f"Department with code {code} already exists"},status=status.HTTP_400_BAD_REQUEST)
-#         serializer.save()
-#         logger.info(f" department {name} created")
-#         return Response(serializer.data, status.HTTP_201_CREATED)
+#         if Department.objects.filter(department_code=department_code).exists():
+#             logger.error(f"department with {department_code} already exists")
+#             return Response({"message": "department with code already exists"},
+#                             status=status.HTTP_400_BAD_REQUEST)
 #
+#         Department.objects.create(**serializer.validated_data)
+#         logger.info(f"department {name} created")
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 #     except Exception as e:
-#         logger.error(f"Error while creating department  {str(e)}")
-#         return Response({"message":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#
+#         logger.error(f"Error creating department: {str(e)}")
+#         return Response({"message": "Error creating department"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 #
 #
 # @api_view(['GET'])
-# def get_department(request, code):
-#     try:
-#         department = Department.objects.filter(code=code)
-#         serializer = DepartmentSerializer(department)
-#         logger.info(f"Retrieved department with code {code}")
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-#
-#     except Department.DoesNotExist:
-#         logger.error(f"Department with code {code} not found")
-#         return Response({"message": f"Department with code {code} not found"}, status=status.HTTP_404_NOT_FOUND)
-#     except Exception as e:
-#         logger.error(f"Error retrieving department: {str(e)}")
-#         return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# def get_department(request, department_code):
+#     department = get_object_or_404(Department, department_code=department_code, is_active=True)
+#     serializer = DepartmentSerializer(department)
+#     logger.info(f"department {department_code} retrieved")
+#     return Response(serializer.data, status=status.HTTP_200_OK)
 #
 #
 # @api_view(['PUT', 'PATCH'])
-# def update_department(request, code):
+# def update_department(request, department_code):
+#     department = get_object_or_404(Department, department_code=department_code, is_active=True)
+#     print(department)
 #     try:
-#         department = Department.objects.get(code=code)
-#         is_partial = request.method == 'PUT'
-#         serializer = DepartmentSerializer(department, data=request.data, partial=is_partial)
+#         serializer = DepartmentSerializer(department, data=request.data, partial=True)
 #         serializer.is_valid(raise_exception=True)
-#
-#         new_code = serializer.validated_data.get("code")
-#         if new_code and new_code != department.code:
-#             if Department.objects.filter(code=new_code).exists():
-#                 logger.error(f"Department with code {new_code} already exists")
-#                 return Response({"message": f"Department with code {new_code} already exists"}, status=status.HTTP_400_BAD_REQUEST)
-#
 #         serializer.save()
-#         logger.info(f"Department {code} updated successfully")
+#         logger.info(f"department {department_code} updated successfully")
 #         return Response(serializer.data, status=status.HTTP_200_OK)
-#
-#     except Department.DoesNotExist:
-#         logger.error(f"Department with code {code} not found")
-#         return Response({"message": f"Department with code {code} not found"}, status=status.HTTP_404_NOT_FOUND)
+#     except ValidationError as e:
+#         logger.error(f"Error validating department {str(e)}")
+#         return Response({"message":"Error validating department"}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 #     except Exception as e:
-#         logger.error(f"Error updating department: {str(e)}")
-#         return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         logger.error(f"Error updating department {str(e)}")
+#         return Response({"message": "Error updating department"}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 #
 #
 # @api_view(['DELETE'])
-# def delete_department(request, code):
-#     try:
-#         department = Department.objects.get(code=code)
-#         name = department.name
-#         department.delete()
-#         logger.info(f"Department '{name}' deleted")
-    #     return Response({"message": f"Department '{name}' deleted successfully"}, status=status.HTTP_200_OK)
-    #
-    # except Department.DoesNotExist:
-    #     logger.error(f"Department with code {code} not found")
-    #     return Response({"message": f"Department with code {code} not found"}, status=status.HTTP_404_NOT_FOUND)
-    # except Exception as e:
-    #     logger.error(f"Error deleting department: {str(e)}")
-    #     return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    #
+# def delete_department(request, department_code):
+#     department = get_object_or_404(Department, department_code=department_code)
+#     department.is_active = False
+#     department.save()
+#     logger.info(f"department {department_code} deleted")
+#     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class DepartmentViewSet(ModelViewSet):
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
