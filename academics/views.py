@@ -1,3 +1,4 @@
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from .models import Course, AcademicSession
@@ -17,9 +18,6 @@ class AcademicSessionViewSet(ModelViewSet):
     serializer_class = AcademicSessionSerializer
 
 
-# class AcademicSessionViewSet(APIView):
-#     def post(self, request, *args, **kwargs):
-#         serializer = AcademicSessionSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save()
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#
+
+

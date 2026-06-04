@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from core.models import User
+from core.models import User, Department
 from account.serializers import StudentEnrollmentSerializer
 from account.models import Student
 from django.db import transaction
@@ -13,6 +13,11 @@ class StudentEnrollment(APIView):
     def post(self, request, *args, **kwargs):
         serializer = StudentEnrollmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        department_code = serializer.validated_data['department']
+        department = Department.objects.get(department_code=department_code)
+
+
         with transaction.atomic():
             user = User.objects.create(
                 email=serializer.validated_data['email'],
@@ -25,7 +30,7 @@ class StudentEnrollment(APIView):
 
             student = Student.objects.create(
                 user=user,
-                department=serializer.validated_data['department'],
+                department=department,
                 entry=serializer.validated_data['entry_year'],
             )
 
