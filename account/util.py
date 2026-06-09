@@ -1,9 +1,9 @@
-import datetime
-from random import random
+from random import randint
 
 
 def generate_matric_number():
-    year = datetime.now().year
-    random_digits = random.randint(1000, 9999)
+    prefix = "26SE"
+    number = randint(1000, 9999)
+    return prefix + str(number)
 
-    return f"STU{year}{random_digits}"
+print(generate_matric_number())
