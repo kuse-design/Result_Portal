@@ -1,6 +1,7 @@
+from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ModelViewSet
-from .models import Course, AcademicSession
-from .serializers import CourseSerializer, AcademicSessionSerializer
+from .models import Course, AcademicSession, CourseRegistration
+from .serializers import CourseSerializer, AcademicSessionSerializer, CourseRegistrationSerializer
 
 
 class CourseViewSet(ModelViewSet):
@@ -17,3 +18,28 @@ class CourseViewSet(ModelViewSet):
 class AcademicSessionViewSet(ModelViewSet):
     queryset = AcademicSession.objects.all()
     serializer_class = AcademicSessionSerializer
+
+
+class CourseRegistrationViewSet(ModelViewSet):
+    queryset = CourseRegistration.objects.select_related(
+        'student',
+        'course',
+        'session'
+    )
+
+    serializer_class = CourseRegistrationSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = self.queryset
+
+        student_id = self.request.query_params.get('student')
+        session_id = self.request.query_params.get('session')
+
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+
+        if session_id:
+            queryset = queryset.filter(session_id=session_id)
+
+        return queryset
