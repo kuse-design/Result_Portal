@@ -1,4 +1,4 @@
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from .models import Course, AcademicSession, CourseRegistration
 from .serializers import CourseSerializer, AcademicSessionSerializer, CourseRegistrationSerializer
@@ -21,25 +21,47 @@ class AcademicSessionViewSet(ModelViewSet):
 
 
 class CourseRegistrationViewSet(ModelViewSet):
-    queryset = CourseRegistration.objects.select_related(
-        'student',
-        'course',
-        'session'
-    )
-
     serializer_class = CourseRegistrationSerializer
-    permission_classes = [AllowAny]
+    permissions = [IsAuthenticated]
+
 
     def get_queryset(self):
-        queryset = self.queryset
+        user = self.request.user
 
-        student_id = self.request.query_params.get('student')
-        session_id = self.request.query_params.get('session')
+        qs = CourseRegistration.objects.select_related(
+            "student__user", "course__department", "session"
+        ).all()
 
-        if student_id:
-            queryset = queryset.filter(student_id=student_id)
+        if user.is_active:
+            qs = qs.filter(student=user.student_profile)
 
-        if session_id:
-            queryset = queryset.filter(session_id=session_id)
+        return qs
 
-        return queryset
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        user = self.request.user
+
+        if user.is_authenticated and user.is_active:
+            try:
+                context["student"] = user.student_profile
+            except Exception as e:
+                context["student"] = None
+
+        return context
+
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_active:
+            logger.warning(
+                f"Non-student user_id={request.user.id} attempted course registration"
+
+            )
+            return Response(
+            data:{"error": "Only active students can register for course"}
+            status=status.HTTP_400_FORBIDDEN,
+            )
+
+            try:
+                student = request.user.student_profile
+                
+
+

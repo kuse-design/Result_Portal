@@ -21,15 +21,15 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
 
 
 class CourseRegistrationSerializer(serializers.ModelSerializer):
-    student = StudentEnrollmentSerializer(read_only=True)
-    course = CourseSerializer(read_only=True)
-    session = AcademicSessionSerializer(read_only=True)
+   course = CourseSerializer(read_only=True)
+   student = StudentSerializer(read_only=True)
+   session_semester = serializers.SerializerMethodField()
 
-    student_id = serializers.PrimaryKeyRelatedField(
-        queryset=Student.objects.all(),
-        source='student',
-        write_only=True
-    )
+    class Meta:
+        model = CourseRegistration
+        fields = ["id", "student", "course",'session', "session_semester", 'registered_at']
+
+         read_only_fields = ['id', 'registered_at']
 
     course_id = serializers.PrimaryKeyRelatedField(
         queryset=Course.objects.all(),
