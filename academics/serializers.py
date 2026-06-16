@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from account.models import Student
-from account.serializers import StudentEnrollmentSerializer
 from .models import Course, AcademicSession, CourseRegistration
 
 
@@ -20,55 +19,62 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
         fields = ['name', 'year', 'semester', 'is_current', 'start_date', 'end_date']
 
 
+class ReadAcademicSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicSession
+        fields = ['name', 'year', 'start_date']
+
+
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields =['department', 'matric_number', 'level', 'status', 'entry_year']
+
+
 class CourseRegistrationSerializer(serializers.ModelSerializer):
-   course = CourseSerializer(read_only=True)
-   student = StudentSerializer(read_only=True)
-   session_semester = serializers.SerializerMethodField()
+    course_title = serializers.CharField(source='course.title', read_only=True)
+    student = StudentSerializer(read_only=True)
+    session_semester = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseRegistration
-        fields = ["id", "student", "course",'session', "session_semester", 'registered_at']
+        fields = ['id', 'course', 'course_title', 'session', 'student', 'session_semester', 'register_at']
 
-         read_only_fields = ['id', 'registered_at']
+        read_only_fields = ['id', 'register_at', 'session_semester', 'course_title']
 
-    course_id = serializers.PrimaryKeyRelatedField(
-        queryset=Course.objects.all(),
-        source='course',
-        write_only=True
-    )
-
-    session_id = serializers.PrimaryKeyRelatedField(
-        queryset=AcademicSession.objects.all(),
-        source='session',
-        write_only=True
-    )
-
-    class Meta:
-        model = CourseRegistration
-        fields = ["id", "student", "course", "session", "student_id", "course_id", "session_id", "register_at"]
-        read_only_fields = ["register_at"]
+    def get_session_semester(self, obj):
+        return obj.session.get_semester_display()
 
     def validate(self, attrs):
-        student = attrs.get('student')
         course = attrs.get('course')
         session = attrs.get('session')
 
-        exists = CourseRegistration.objects.filter(
-            student=student,
-            course=course,
-            session=session
-        )
+        if course and session:
+            if course.semester != session.semester:
+                raise serializers.ValidationError(
+                    {
+                        "course": (
+                            f"'{course.course_code}' is a {course.get_semester_display()} "
+                            f"course but the selected session is "
+                            f"{session.get_semester_display()}."
+                        )
+                    }
+                )
 
-        if self.instance:
-            exists = exists.exclude(pk=self.instance.pk)
-
-        if exists.exists():
-            raise serializers.ValidationError("Student already registered for the course")
-
-        if course.semester != session.semester:
-            raise serializers.ValidationError(
-                f"{course.course_code} belongs "
-                f"to {course.semester} semester"
-            )
+        student = self.context.get('student')
+        if student and course and session:
+            if CourseRegistration.objects.filter(
+                student=student,
+                course=course,
+                session=session
+            ).exists():
+                raise serializers.ValidationError(
+                    {
+                        "non_field_errors": (
+                            f"You are already registered for "
+                            f"'{course.course_code}' in this session. "
+                        )
+                    }
+                )
 
         return attrs
